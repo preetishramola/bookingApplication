@@ -1,9 +1,9 @@
-# Example application.yml (do not commit real credentials)
+# Example application.yml 
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/hotelbooking
     username: preetishramola
-    password: '@1234Preetish' # DO NOT COMMIT real passwords; use environment variable DB_PASSWORD
+    password: 
     driver-class-name: org.postgresql.Driver
 
   jpa:
