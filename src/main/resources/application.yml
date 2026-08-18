@@ -2,6 +2,7 @@ spring:
   application:
     name: hotelbooking
 
+
   datasource:
     url: jdbc:postgresql://localhost:5432/hotelbooking
     username: ${DB_USER:preetishramola}
