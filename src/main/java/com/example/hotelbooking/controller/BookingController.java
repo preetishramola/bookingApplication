@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class BookingController {
     private final BookingRepository bookingRepository; // Quick injection for user bookings
 
     // POST /api/bookings
+    @Transactional
     @PostMapping("/bookings")
     public ResponseEntity<BookingResponse> createBooking(@Valid @RequestBody BookingRequest request) {
         Booking booking = bookingService.createBooking(
@@ -35,6 +37,7 @@ public class BookingController {
     }
 
     // GET /api/bookings/{bookingId}
+    @Transactional(readOnly = true)
     @GetMapping("/bookings/{bookingId}")
     public ResponseEntity<BookingResponse> getBooking(@PathVariable Long bookingId) {
         Booking booking = bookingService.getBooking(bookingId);
@@ -42,6 +45,7 @@ public class BookingController {
     }
 
     // DELETE /api/bookings/{bookingId}
+    @Transactional
     @DeleteMapping("/bookings/{bookingId}")
     public ResponseEntity<Void> cancelBooking(@PathVariable Long bookingId) {
         bookingService.cancelBooking(bookingId);
@@ -49,6 +53,7 @@ public class BookingController {
     }
 
     // GET /api/users/{userId}/bookings
+    @Transactional(readOnly = true)
     @GetMapping("/users/{userId}/bookings")
     public ResponseEntity<List<BookingResponse>> getUserBookings(@PathVariable Long userId) {
         List<Booking> bookings = bookingRepository.findByUserId(userId);
