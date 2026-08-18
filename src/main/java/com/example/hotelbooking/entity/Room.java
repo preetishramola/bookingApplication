@@ -2,6 +2,7 @@ package com.example.hotelbooking.entity;
 
 import com.example.hotelbooking.enums.RoomStatus;
 import com.example.hotelbooking.enums.RoomType;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,6 +30,7 @@ public class Room {
     private RoomStatus status = RoomStatus.AVAILABLE;
 
     // The foreign key column will be 'hotel_id'
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hotel_id", nullable = false)
     private Hotel hotel;

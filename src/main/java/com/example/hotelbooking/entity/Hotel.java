@@ -1,5 +1,6 @@
 package com.example.hotelbooking.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -27,6 +28,7 @@ public class Hotel {
 
     // A hotel can have many rooms. CascadeType.ALL means if we save/delete a hotel, 
     // it cascades to its rooms.
+    @JsonIgnore
     @OneToMany(mappedBy = "hotel", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Room> rooms = new ArrayList<>();
 }
