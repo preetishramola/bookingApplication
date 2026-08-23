@@ -31,7 +31,9 @@ public class BookingController {
                 request.getUserId(),
                 request.getRoomId(),
                 request.getCheckIn(),
-                request.getCheckOut()
+                request.getCheckOut(),
+                request.getAddOns(),
+                request.getPaymentMethod()
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(mapToBookingResponse(booking));
     }
