@@ -2,11 +2,10 @@ spring:
   application:
     name: hotelbooking
 
-
   datasource:
     url: jdbc:postgresql://localhost:5432/hotelbooking
-    username: ${DB_USER:preetishramola}
-    password: ${DB_PASSWORD}
+    username: preetishramola
+    password: '@1234Preetish'
     driver-class-name: org.postgresql.Driver
 
   jpa:

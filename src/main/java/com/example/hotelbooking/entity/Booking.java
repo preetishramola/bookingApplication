@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "bookings")
@@ -34,6 +36,14 @@ public class Booking {
 
     @Column(nullable = false)
     private Double totalAmount;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "booking_add_ons",
+            joinColumns = @JoinColumn(name = "booking_id")
+    )
+    @Column(name = "add_on", nullable = false)
+    private List<String> addOns = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     private BookingStatus status = BookingStatus.PENDING;

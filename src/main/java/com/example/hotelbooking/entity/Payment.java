@@ -1,5 +1,6 @@
 package com.example.hotelbooking.entity;
 
+import com.example.hotelbooking.enums.PaymentMethod;
 import com.example.hotelbooking.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -23,6 +24,10 @@ public class Payment {
 
     @Column(nullable = false)
     private Double amount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PaymentMethod paymentMethod;
 
     @Enumerated(EnumType.STRING)
     private PaymentStatus status = PaymentStatus.PENDING;
