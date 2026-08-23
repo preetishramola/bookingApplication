@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter @Setter
 public class BookingRequest {
@@ -23,4 +25,9 @@ public class BookingRequest {
     @NotNull(message = "Check-out date cannot be null")
     @Future(message = "Check-out date must be in the future")
     private LocalDate checkOut;
+
+    private List<String> addOns = new ArrayList<>();
+
+    @NotNull(message = "Payment method cannot be null")
+    private String paymentMethod;
 }
