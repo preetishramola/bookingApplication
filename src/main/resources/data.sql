@@ -1,3 +1,7 @@
+-- Ensure users table has expected columns (add if missing) with safe defaults
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255) DEFAULT '' NOT NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'ROLE_USER' NOT NULL;
+
 -- Seed data for Hotel Booking demo application
 INSERT INTO hotels (id, name, address, city, state, country, rating) VALUES
   (1, 'Sunset Inn', '10 Main Street', 'New York', 'NY', 'USA', 4.5),
