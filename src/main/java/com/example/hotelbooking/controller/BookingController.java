@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,6 +28,7 @@ public class BookingController {
     // POST /api/bookings
     @Idempotent
     @Transactional
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @PostMapping("/bookings")
     public ResponseEntity<BookingResponse> createBooking(@Valid @RequestBody BookingRequest request) {
         Booking booking = bookingService.createBooking(
