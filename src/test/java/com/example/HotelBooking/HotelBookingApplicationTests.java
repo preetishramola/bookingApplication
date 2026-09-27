@@ -1,10 +1,9 @@
-package com.example.HotelBooking;
+package com.example.hotelbooking;
 
+import com.example.hotelbooking.support.IntegrationTestBase;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class HotelBookingApplicationTests {
+class HotelBookingApplicationTests extends IntegrationTestBase {
 
 	@Test
 	void contextLoads() {

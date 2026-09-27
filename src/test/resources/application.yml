@@ -1,0 +1,27 @@
+# Test config: replaces src/main/resources/application.yml.
+# The datasource comes from the Testcontainers Postgres (see TestInfrastructure, @ServiceConnection).
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    defer-datasource-initialization: true
+    open-in-view: false
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/postgis-pgvector.sql
+      data-locations: optional:classpath:no-seed-data.sql # tests create their own data
+  ai:
+    model:
+      chat: none
+      embedding: none # Ollama is replaced by FakeEmbeddingModel
+
+app:
+  jwt:
+    secret: test-secret-key-that-is-at-least-32-bytes-long
+    expiration-ms: 3600000
+  rate-limit:
+    requests-per-minute: 100000
+  vibe-search:
+    dimensions: 768
+    backfill-on-startup: false
