@@ -35,3 +35,9 @@ build/
 ### macOS ###
 .DS_Store
 **/.DS_Store
+
+### Local tooling / secrets ###
+.postman/
+postman/
+.env
+*.log
