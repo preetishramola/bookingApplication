@@ -7,6 +7,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -21,6 +22,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     // Stores a token bucket for each IP address
     private final Map<String, Bucket> cache = new ConcurrentHashMap<>();
+
+    // Configured via app.rate-limit.requests-per-minute in application.yml
+    private final long requestsPerMinute;
+
+    public RateLimitFilter(@Value("${app.rate-limit.requests-per-minute:10}") long requestsPerMinute) {
+        this.requestsPerMinute = requestsPerMinute;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -40,9 +48,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private Bucket createNewBucket(String key) {
-        // Refill 10 tokens every 1 minute. Max capacity is 10.
-        Refill refill = Refill.intervally(10, Duration.ofMinutes(1));
-        Bandwidth limit = Bandwidth.classic(10, refill);
+        // Refill the full allowance every minute. Max capacity is the same allowance.
+        Refill refill = Refill.intervally(requestsPerMinute, Duration.ofMinutes(1));
+        Bandwidth limit = Bandwidth.classic(requestsPerMinute, refill);
         return Bucket.builder().addLimit(limit).build();
     }
 }

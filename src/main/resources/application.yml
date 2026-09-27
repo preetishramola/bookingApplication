@@ -3,9 +3,10 @@ spring:
     name: hotelbooking
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/hotelbooking
-    username: preetishramola
-    password: '@1234Preetish'
+    # Docker Postgres from docker-compose.yml (PostGIS + pgvector). Override with DB_URL / DB_USERNAME / DB_PASSWORD.
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/hotelbooking}
+    username: ${DB_USERNAME:hotelbooking}
+    password: ${DB_PASSWORD:hotelbooking}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -21,6 +22,33 @@ spring:
   sql:
     init:
       mode: always
+      # schema script runs first (extensions, PostGIS/pgvector columns + indexes), then seed data
+      schema-locations: classpath:db/postgis-pgvector.sql
+      data-locations: classpath:data.sql
+
+  ai:
+    model:
+      chat: none # we only need embeddings, not a chat model
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      init:
+        pull-model-strategy: never # docker compose's ollama-pull service downloads the model
+      embedding:
+        options:
+          model: nomic-embed-text
 
 server:
   port: 8080
+
+app:
+  jwt:
+    # Local-dev default only. Set JWT_SECRET (at least 32 characters) in any real environment.
+    secret: ${JWT_SECRET:local-dev-only-secret-change-me-hotelbooking-2026}
+    expiration-ms: 86400000 # 24 hours
+  rate-limit:
+    requests-per-minute: ${RATE_LIMIT_PER_MINUTE:10} # raise for API test runs
+  geo-search:
+    max-radius-km: 100
+  vibe-search:
+    dimensions: 768 # must match the embedding model and the vector(768) column in db/postgis-pgvector.sql
+    backfill-on-startup: true

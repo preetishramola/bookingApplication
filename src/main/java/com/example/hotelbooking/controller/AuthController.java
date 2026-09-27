@@ -5,8 +5,10 @@ import com.example.hotelbooking.dto.AuthResponse;
 import com.example.hotelbooking.dto.RegisterRequest;
 import com.example.hotelbooking.entity.User;
 import com.example.hotelbooking.enums.Role;
+import com.example.hotelbooking.exception.ResourceNotFoundException;
 import com.example.hotelbooking.repository.UserRepository;
 import com.example.hotelbooking.security.JwtUtil;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -34,7 +36,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
         // 1. Check if email already exists
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             return ResponseEntity.badRequest().body("Email is already in use!");
@@ -47,8 +49,8 @@ public class AuthController {
         // 3. Hash the password before saving!
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        // Default to USER role if none is provided
-        user.setRole(request.getRole() != null ? request.getRole() : Role.ROLE_USER);
+        // Self-registration always creates a normal user; admins are created directly in the database
+        user.setRole(Role.ROLE_USER);
 
         // 4. Save to PostgreSQL
         userRepository.save(user);
@@ -63,7 +65,7 @@ public class AuthController {
         );
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         // Updated to pass the user's name into the token!
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name(), user.getName());

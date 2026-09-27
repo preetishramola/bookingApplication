@@ -10,11 +10,10 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+// The booking user is taken from the JWT, not from the request body,
+// so a user can't create bookings on someone else's account.
 @Getter @Setter
 public class BookingRequest {
-    @NotNull(message = "User ID cannot be null")
-    private Long userId;
-
     @NotNull(message = "Room ID cannot be null")
     private Long roomId;
 

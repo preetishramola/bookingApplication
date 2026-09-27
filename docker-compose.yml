@@ -1,0 +1,41 @@
+# Local dev infrastructure:  docker compose up -d
+#   postgres    -> localhost:5433 (PostGIS + pgvector), db/user/password = hotelbooking
+#   ollama      -> localhost:11434 (embedding model for "Search by Vibe")
+#   ollama-pull -> one-shot job that downloads the nomic-embed-text model, then exits
+services:
+  postgres:
+    build: ./docker/postgres
+    image: hotelbooking-postgres:local
+    environment:
+      POSTGRES_DB: hotelbooking
+      POSTGRES_USER: hotelbooking
+      POSTGRES_PASSWORD: hotelbooking
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hotelbooking -d hotelbooking"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    depends_on:
+      - ollama
+    environment:
+      OLLAMA_HOST: ollama:11434
+    entrypoint: ["/bin/sh", "-c", "sleep 3 && ollama pull nomic-embed-text"]
+    restart: "no"
+
+volumes:
+  pgdata:
+  ollama:

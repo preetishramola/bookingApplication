@@ -1,10 +1,13 @@
 package com.example.hotelbooking.controller;
 
+import com.example.hotelbooking.dto.response.HotelResponse;
+import com.example.hotelbooking.dto.response.HotelSearchResult;
 import com.example.hotelbooking.dto.response.RoomResponse;
 import com.example.hotelbooking.entity.Hotel;
 import com.example.hotelbooking.entity.Room;
 import com.example.hotelbooking.service.HotelService;
 import com.example.hotelbooking.service.BookingService;
+import com.example.hotelbooking.service.HotelSearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -21,13 +24,48 @@ public class HotelController {
 
     private final HotelService hotelService;
     private final BookingService bookingService;
+    private final HotelSearchService hotelSearchService;
+
+    // GET /api/hotels/search?name=&city=&state=&country=&minRating=  (all optional)
+    @GetMapping("/search")
+    public ResponseEntity<List<HotelResponse>> searchHotels(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String country,
+            @RequestParam(required = false) Double minRating) {
+
+        List<Hotel> hotels = hotelService.searchHotels(name, city, state, country, minRating);
+        return ResponseEntity.ok(hotels.stream().map(HotelResponse::from).toList());
+    }
+
+    // GET /api/hotels/nearby?lat=12.97&lng=77.59&radiusKm=5&limit=20
+    // PostGIS: hotels within radiusKm (default 5) of the point, nearest first
+    @GetMapping("/nearby")
+    public ResponseEntity<List<HotelSearchResult>> findNearby(
+            @RequestParam double lat,
+            @RequestParam double lng,
+            @RequestParam(required = false) Double radiusKm,
+            @RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(hotelSearchService.findNearby(lat, lng, radiusKm, limit));
+    }
+
+    // GET /api/hotels/vibe-search?q=quiet romantic boutique hotel near Cubbon Park&limit=10
+    // Optional &lat=&lng=&radiusKm= to only rank hotels near a point.
+    @GetMapping("/vibe-search")
+    public ResponseEntity<List<HotelSearchResult>> vibeSearch(
+            @RequestParam String q,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lng,
+            @RequestParam(required = false) Double radiusKm,
+            @RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(hotelSearchService.vibeSearch(q, lat, lng, radiusKm, limit));
+    }
 
     // GET /api/hotels/{hotelId}
     @GetMapping("/{hotelId}")
-    public ResponseEntity<Hotel> getHotel(@PathVariable Long hotelId) {
-        // For V1, returning the entity directly is okay for a simple GET, 
-        // but we normally map this to a HotelResponse DTO too.
-        return ResponseEntity.ok(hotelService.getHotel(hotelId));
+    public ResponseEntity<HotelResponse> getHotel(@PathVariable Long hotelId) {
+        return ResponseEntity.ok(HotelResponse.from(hotelService.getHotel(hotelId)));
     }
 
     // GET /api/hotels/{hotelId}/rooms

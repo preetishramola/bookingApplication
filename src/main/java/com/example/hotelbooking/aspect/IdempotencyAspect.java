@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,8 +18,12 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDateTime;
 
+// HIGHEST_PRECEDENCE makes this run OUTSIDE the method's @Transactional.
+// That way the key is committed on its own (so a concurrent duplicate is blocked right away),
+// and a failed insert can't mark the booking transaction as rollback-only.
 @Aspect
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @RequiredArgsConstructor
 public class IdempotencyAspect {
 
@@ -30,7 +36,7 @@ public class IdempotencyAspect {
         // The frontend MUST send this header
         String idempotencyKey = request.getHeader("Idempotency-Key");
 
-        if (idempotencyKey == null || idempotencyKey.isEmpty()) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Idempotency-Key header is missing");
         }
 
@@ -45,7 +51,14 @@ public class IdempotencyAspect {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Duplicate request detected. This action was already processed.");
         }
 
-        // If the save was successful, proceed to the actual BookingController logic
-        return joinPoint.proceed();
+        try {
+            // If the save was successful, proceed to the actual BookingController logic
+            return joinPoint.proceed();
+        } catch (Throwable ex) {
+            // The action failed (e.g. room unavailable, payment failed), so nothing was processed.
+            // Release the key so the client can retry with the same Idempotency-Key.
+            idempotencyRepository.deleteById(idempotencyKey);
+            throw ex;
+        }
     }
 }

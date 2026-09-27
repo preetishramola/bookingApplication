@@ -1,12 +1,22 @@
 package com.example.hotelbooking.dto;
 
-import com.example.hotelbooking.enums.Role;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
+// No role field: every self-registered account is a normal USER.
+// Admins are created directly in the database.
 public class RegisterRequest {
+    @NotBlank(message = "Name is required")
     private String name;
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email must be valid")
     private String email;
+
+    @NotBlank(message = "Password is required")
+    @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
-    private Role role;
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -16,7 +26,4 @@ public class RegisterRequest {
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
-
-    public Role getRole() { return role; }
-    public void setRole(Role role) { this.role = role; }
 }

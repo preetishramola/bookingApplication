@@ -17,12 +17,12 @@ import com.example.hotelbooking.strategy.pricing.PricingStrategy;
 import com.example.hotelbooking.strategy.pricing.StandardPricingStrategy;
 import com.example.hotelbooking.strategy.pricing.WeekendPricingStrategy;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -35,6 +35,7 @@ public class BookingService {
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
     private final PaymentService paymentService;
+    private final RefundService refundService;
 
     /**
      * Retrieves all rooms for a hotel that are physically AVAILABLE 
@@ -54,20 +55,18 @@ public class BookingService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional
-    public Booking createBooking(Long userId, Long roomId, LocalDate checkIn, LocalDate checkOut) {
-        return createBooking(userId, roomId, checkIn, checkOut, List.of(), "CREDIT_CARD");
-    }
-
     /**
      * @Transactional ensures that if the payment fails (or any error occurs), 
      * the booking is rolled back and not saved to the database.
      */
     @Transactional
-    public Booking createBooking(Long userId, Long roomId, LocalDate checkIn, LocalDate checkOut,
+    public Booking createBooking(String userEmail, Long roomId, LocalDate checkIn, LocalDate checkOut,
                                 List<String> addOns, String paymentMethod) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (!checkOut.isAfter(checkIn)) {
+            throw new IllegalArgumentException("Check-out date must be after check-in date");
+        }
+
+        User user = getUserByEmail(userEmail);
 
         // By fetching the room this way, Postgres locks the row.
         // If Thread 2 arrives, it is forced to WAIT here until Thread 1 finishes the transaction!
@@ -147,14 +146,36 @@ public class BookingService {
         return false;
     }
 
-    public Booking getBooking(Long bookingId) {
-        return bookingRepository.findById(bookingId)
+    /**
+     * Returns the booking only if the requester owns it or is an admin.
+     */
+    public Booking getBooking(Long bookingId, String requesterEmail, boolean requesterIsAdmin) {
+        Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        if (!requesterIsAdmin && !booking.getUser().getEmail().equals(requesterEmail)) {
+            throw new AccessDeniedException("You are not allowed to access this booking");
+        }
+        return booking;
+    }
+
+    public List<Booking> getUserBookings(Long userId, String requesterEmail, boolean requesterIsAdmin) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!requesterIsAdmin && !user.getEmail().equals(requesterEmail)) {
+            throw new AccessDeniedException("You are not allowed to view this user's bookings");
+        }
+        return bookingRepository.findByUserId(userId);
+    }
+
+    public List<Booking> getMyBookings(String userEmail) {
+        return bookingRepository.findByUserId(getUserByEmail(userEmail).getId());
     }
 
     @Transactional
-    public void cancelBooking(Long bookingId) {
-        Booking booking = getBooking(bookingId);
+    public void cancelBooking(Long bookingId, String requesterEmail, boolean requesterIsAdmin) {
+        Booking booking = getBooking(bookingId, requesterEmail, requesterIsAdmin);
 
         if (booking.getStatus() == BookingStatus.CANCELLED) {
             throw new IllegalStateException("Booking is already cancelled");
@@ -163,6 +184,11 @@ public class BookingService {
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
 
-        // In the future: Add refund logic via PaymentService here
+        refundService.processRefund(booking);
+    }
+
+    private User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 }
