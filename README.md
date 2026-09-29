@@ -33,7 +33,7 @@ A Spring Boot REST API for searching and booking hotels. Beyond the usual CRUD, 
 |---|---|
 | Filter search | Optional name / city / state / country / min-rating filters built with JPA `Specification`s |
 | **Geo search** | PostGIS `ST_DWithin` + `ST_Distance` on a `geography(Point, 4326)` column, GIST-indexed, nearest first, distances in km |
-| **Search by Vibe** | Hotel description + amenities + location are embedded into a 768-dim vector (nomic-embed-text via Ollama, through Spring AI). Queries are embedded the same way and ranked by pgvector cosine distance on an HNSW index |
+| **Search by Vibe** | Hotel description + amenities + location are embedded into a 1024-dim vector (Amazon Titan Text Embeddings V2 on Bedrock, through Spring AI). Queries are embedded the same way and ranked by pgvector cosine distance on an HNSW index |
 | Hybrid search | Vibe search can be restricted to a radius — *"romantic hotels within 5 km of me"* — in a single SQL query |
 | Availability | Rooms free for a date range (excludes maintenance and overlapping bookings) |
 
@@ -63,7 +63,7 @@ A Spring Boot REST API for searching and booking hotels. Beyond the usual CRUD, 
 |---|---|
 | Language / framework | Java 21, Spring Boot 3.4 (Web, Data JPA, Validation, Security, AOP) |
 | Database | PostgreSQL 17 + **PostGIS** + **pgvector** |
-| AI | **Spring AI 1.0** `EmbeddingModel` → **Ollama** (`nomic-embed-text`, 768 dims), runs locally |
+| AI | **Spring AI 1.0** `EmbeddingModel` → **Amazon Bedrock** (Titan Text Embeddings V2, 1024 dims) |
 | Auth | Spring Security, JJWT, BCrypt |
 | Rate limiting | Bucket4j |
 | Testing | JUnit 5, MockMvc, **Testcontainers**, AssertJ, Postman / Newman |
@@ -90,7 +90,7 @@ flowchart LR
 
     HS --> ES[HotelEmbeddingService]
     SS --> ES
-    ES -->|Spring AI EmbeddingModel| OL[(Ollama<br/>nomic-embed-text)]
+    ES -->|Spring AI EmbeddingModel| OL[(Amazon Bedrock<br/>Titan Embeddings V2)]
 
     BS --> DB[(PostgreSQL<br/>PostGIS + pgvector)]
     HS --> DB
@@ -125,7 +125,7 @@ sequenceDiagram
 
 **How vibe search works**
 
-1. When a hotel is added, its name, location, rating, description and amenities are turned into one text and embedded into a 768-number vector, stored in a `vector(768)` column.
+1. When a hotel is added, its name, location, rating, description and amenities are turned into one text and embedded into a 1024-number vector, stored in a `vector(1024)` column.
 2. A search query is embedded the same way.
 3. PostgreSQL ranks hotels by cosine distance (`embedding <=> query`) using an HNSW index; `matchScore = 1 − distance`.
 
@@ -140,9 +140,11 @@ sequenceDiagram
 ### Run
 
 ```bash
-# 1. Start PostgreSQL (PostGIS + pgvector) on :5433 and Ollama on :11434.
-#    The first run downloads the embedding model (~275 MB).
+# 1. Start PostgreSQL (PostGIS + pgvector) on :5433
 docker compose up -d
+
+# (optional) AWS credentials for vibe search via Bedrock; without them vibe search returns 503
+aws configure            # region ap-south-1, or set AWS_REGION
 
 # 2. Start the API on :8080
 ./mvnw spring-boot:run
@@ -260,12 +262,12 @@ curl -X POST localhost:8080/api/bookings \
 ## Testing
 
 ```bash
-./mvnw test                           # 31 tests; needs Docker running (Testcontainers), not Ollama
+./mvnw test                           # 31 tests; needs Docker running (Testcontainers), not AWS
 ./mvnw test -Dtest=HotelSearchIntegrationTest
 ```
 
 - **Unit tests** — pricing strategies and add-on decorators.
-- **Integration tests** — run against a real PostgreSQL + PostGIS + pgvector container (built from the same `docker/postgres/Dockerfile`), covering auth, access control, idempotency, booking conflicts, cancellation, admin, geo and vibe search. A deterministic fake embedding model replaces Ollama, including simulated outages.
+- **Integration tests** — run against a real PostgreSQL + PostGIS + pgvector container (built from the same `docker/postgres/Dockerfile`), covering auth, access control, idempotency, booking conflicts, cancellation, admin, geo and vibe search. A deterministic fake embedding model replaces Bedrock, including simulated outages.
 
 **End-to-end against the running app**
 
@@ -291,7 +293,7 @@ All settings live in `src/main/resources/application.yml`; the common ones can b
 | `DB_URL` | `jdbc:postgresql://localhost:5433/hotelbooking` | Database URL |
 | `DB_USERNAME` / `DB_PASSWORD` | `hotelbooking` / `hotelbooking` | Database credentials |
 | `JWT_SECRET` | dev-only value | JWT signing key (≥ 32 chars) — **set this outside local dev** |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Embedding model server |
+| `AWS_REGION` | `ap-south-1` | Bedrock region for embeddings (credentials from the default AWS chain) |
 | `RATE_LIMIT_PER_MINUTE` | `10` | Requests per minute per IP |
 
 Other settings under `app.*`: JWT expiry, max geo radius (100 km), embedding dimensions, startup embedding backfill.
@@ -304,9 +306,9 @@ Other settings under `app.*`: JWT expiry, max geo radius (100 km), embedding dim
 - **Idempotency key committed before the business logic.** The database primary key is the arbiter, so two identical requests at the same instant can't both run. The aspect runs outside the booking transaction, and deletes the key if the booking fails so retries work.
 - **`geography`, not `geometry`.** Distances come back in metres on the real globe instead of degrees.
 - **Generated `location` column.** The PostGIS point is computed from `latitude`/`longitude` by the database, so it can never go out of sync.
-- **Embeddings kept off the JPA entity.** The 768-float vector is only read and written through native queries, so normal hotel/booking reads don't load it.
-- **Hotel creation doesn't depend on the AI model.** The hotel is saved first and embedded after; if Ollama is down it is backfilled later.
-- **Local embeddings.** Ollama keeps search free, private and offline-capable; the model is swappable through Spring AI configuration.
+- **Embeddings kept off the JPA entity.** The 1024-float vector is only read and written through native queries, so normal hotel/booking reads don't load it.
+- **Hotel creation doesn't depend on the AI model.** The hotel is saved first and embedded after; if Bedrock is unreachable it is backfilled later.
+- **Hosted embeddings.** Bedrock Titan V2 costs fractions of a cent per search and needs no separate model server; the model is swappable through Spring AI configuration.
 - **Testcontainers instead of H2.** Spatial and vector SQL can't be tested on an in-memory database.
 
 ---

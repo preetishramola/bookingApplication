@@ -1,7 +1,8 @@
 # Local dev infrastructure:  docker compose up -d
-#   postgres    -> localhost:5433 (PostGIS + pgvector), db/user/password = hotelbooking
-#   ollama      -> localhost:11434 (embedding model for "Search by Vibe")
-#   ollama-pull -> one-shot job that downloads the nomic-embed-text model, then exits
+#   postgres -> localhost:5433 (PostGIS + pgvector), db/user/password = hotelbooking
+# Vibe search uses Amazon Bedrock (Titan Text Embeddings V2). Locally the app picks up your AWS
+# credentials from ~/.aws (run `aws configure`) or AWS_PROFILE; without them vibe search returns 503
+# and everything else still works.
 services:
   postgres:
     build: ./docker/postgres
@@ -20,22 +21,5 @@ services:
       timeout: 5s
       retries: 10
 
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama:/root/.ollama
-
-  ollama-pull:
-    image: ollama/ollama:latest
-    depends_on:
-      - ollama
-    environment:
-      OLLAMA_HOST: ollama:11434
-    entrypoint: ["/bin/sh", "-c", "sleep 3 && ollama pull nomic-embed-text"]
-    restart: "no"
-
 volumes:
   pgdata:
-  ollama:
