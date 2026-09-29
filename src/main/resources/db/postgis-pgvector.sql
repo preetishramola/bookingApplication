@@ -14,7 +14,9 @@ ALTER TABLE hotels ADD COLUMN IF NOT EXISTS location geography(Point, 4326)
     ) STORED;
 CREATE INDEX IF NOT EXISTS idx_hotels_location ON hotels USING GIST (location);
 
--- Vibe search: 768 dims = nomic-embed-text. Changing model/dimensions means changing this column
--- (and app.vibe-search.dimensions), then re-embedding all hotels.
-ALTER TABLE hotels ADD COLUMN IF NOT EXISTS embedding vector(768);
+-- Vibe search: 1024 dims = Amazon Titan Text Embeddings V2 (amazon.titan-embed-text-v2:0).
+-- Changing model/dimensions means changing this column (and app.vibe-search.dimensions), then re-embedding all hotels.
+-- An existing local DB still has the old vector(768) column: drop it once with
+--   ALTER TABLE hotels DROP COLUMN embedding;   (or `docker compose down -v`) and restart; hotels are re-embedded on startup.
+ALTER TABLE hotels ADD COLUMN IF NOT EXISTS embedding vector(1024);
 CREATE INDEX IF NOT EXISTS idx_hotels_embedding ON hotels USING hnsw (embedding vector_cosine_ops);

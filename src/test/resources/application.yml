@@ -14,7 +14,7 @@ spring:
   ai:
     model:
       chat: none
-      embedding: none # Ollama is replaced by FakeEmbeddingModel
+      embedding: none # Bedrock is replaced by FakeEmbeddingModel
 
 app:
   jwt:
@@ -23,5 +23,5 @@ app:
   rate-limit:
     requests-per-minute: 100000
   vibe-search:
-    dimensions: 768
+    dimensions: 1024
     backfill-on-startup: false

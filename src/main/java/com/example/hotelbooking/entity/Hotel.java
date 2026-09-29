@@ -43,7 +43,7 @@ public class Hotel {
     private List<String> amenities = new ArrayList<>();
 
     // Note: the pgvector `embedding` column is intentionally NOT mapped here, so loading a hotel
-    // doesn't drag 768 floats along. It is read/written only through native queries in HotelRepository.
+    // doesn't drag 1024 floats along. It is read/written only through native queries in HotelRepository.
 
     // A hotel can have many rooms. CascadeType.ALL means if we save/delete a hotel, 
     // it cascades to its rooms.

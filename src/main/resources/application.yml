@@ -29,13 +29,16 @@ spring:
   ai:
     model:
       chat: none # we only need embeddings, not a chat model
-    ollama:
-      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
-      init:
-        pull-model-strategy: never # docker compose's ollama-pull service downloads the model
-      embedding:
-        options:
-          model: nomic-embed-text
+      embedding: bedrock-titan
+    bedrock:
+      aws:
+        # Credentials come from the default AWS chain: ~/.aws (aws configure / AWS_PROFILE),
+        # AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, or an attached IAM role.
+        region: ${AWS_REGION:ap-south-1}
+      titan:
+        embedding:
+          model: amazon.titan-embed-text-v2:0
+          input-type: TEXT
 
 server:
   port: 8080
@@ -50,5 +53,8 @@ app:
   geo-search:
     max-radius-km: 100
   vibe-search:
-    dimensions: 768 # must match the embedding model and the vector(768) column in db/postgis-pgvector.sql
+    dimensions: 1024 # must match the embedding model and the vector(1024) column in db/postgis-pgvector.sql
     backfill-on-startup: true
+    # nomic-embed-text needed "search_document: " / "search_query: " prefixes; Titan V2 doesn't.
+    document-prefix: ""
+    query-prefix: ""

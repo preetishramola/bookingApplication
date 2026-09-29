@@ -12,12 +12,12 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Deterministic stand-in for Ollama: one dimension per keyword, so texts that share
+ * Deterministic stand-in for Bedrock Titan: one dimension per keyword, so texts that share
  * keywords are "semantically" close. Lets tests check real pgvector ranking without a model.
  */
 public class FakeEmbeddingModel implements EmbeddingModel {
 
-    private static final int DIMENSIONS = 768;
+    private static final int DIMENSIONS = 1024;
     private static final List<String> KEYWORDS = List.of(
             "quiet", "romantic", "boutique", "breakfast", "couple",
             "business", "meeting", "conference", "co-working",
@@ -26,7 +26,7 @@ public class FakeEmbeddingModel implements EmbeddingModel {
 
     private final AtomicBoolean unavailable = new AtomicBoolean(false);
 
-    /** Simulate Ollama being down. */
+    /** Simulate the embedding model being down. */
     public void setUnavailable(boolean value) {
         unavailable.set(value);
     }

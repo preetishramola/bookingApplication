@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * On startup, embeds any hotels that don't have a vibe-search embedding yet (seeded rows, or hotels
- * added while Ollama was down). If Ollama isn't running the app still starts; it just logs a warning.
+ * added while the model was unreachable). If Bedrock can't be reached the app still starts; it just logs a warning.
  */
 @Slf4j
 @Component
@@ -25,7 +25,7 @@ public class EmbeddingBackfillRunner implements ApplicationRunner {
         HotelEmbeddingService.RefreshResult result = embeddingService.refreshEmbeddings(true);
         if (result.failed() > 0) {
             log.warn("Vibe search: embedded {} hotel(s) but could not reach the embedding model; {} hotel(s) still "
-                    + "have no embedding. Start Ollama and call POST /api/admin/hotels/embeddings/refresh.",
+                    + "have no embedding. Check AWS credentials/region and Bedrock model access, then call POST /api/admin/hotels/embeddings/refresh.",
                     result.embedded(), result.failed() + result.remaining());
         } else if (result.embedded() > 0) {
             log.info("Vibe search: generated embeddings for {} hotel(s)", result.embedded());

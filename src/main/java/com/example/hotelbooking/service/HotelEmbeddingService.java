@@ -15,7 +15,7 @@ import java.util.Locale;
 
 /**
  * Turns hotels and search queries into embedding vectors (via Spring AI's EmbeddingModel,
- * backed by a local Ollama server) and stores hotel vectors in the pgvector `embedding` column.
+ * backed by Amazon Bedrock Titan Text Embeddings V2) and stores hotel vectors in the pgvector `embedding` column.
  */
 @Slf4j
 @Service
@@ -30,7 +30,7 @@ public class HotelEmbeddingService {
     public HotelEmbeddingService(EmbeddingModel embeddingModel,
                                  HotelRepository hotelRepository,
                                  @Value("${app.vibe-search.dimensions:768}") int dimensions,
-                                 // nomic-embed-text is trained with these task prefixes; other models can set them to ""
+                                 // nomic-embed-text needed these task prefixes; Titan V2 sets them to "" in application.yml
                                  @Value("${app.vibe-search.document-prefix:search_document: }") String documentPrefix,
                                  @Value("${app.vibe-search.query-prefix:search_query: }") String queryPrefix) {
         this.embeddingModel = embeddingModel;
@@ -72,7 +72,7 @@ public class HotelEmbeddingService {
 
     /**
      * (Re)embeds hotels. onlyMissing=true only handles hotels without an embedding (e.g. seeded rows,
-     * or ones added while Ollama was down). Stops at the first failure, since that almost always means
+     * or ones added while the model was unreachable). Stops at the first failure, since that almost always means
      * the model is unreachable and every other hotel would fail too.
      */
     public RefreshResult refreshEmbeddings(boolean onlyMissing) {
