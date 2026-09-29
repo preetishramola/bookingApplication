@@ -1,0 +1,30 @@
+# Production overrides, enabled with SPRING_PROFILES_ACTIVE=prod (set in docker-compose.prod.yml).
+# All secrets come from environment variables (.env on the server) - there are no usable defaults here.
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  sql:
+    init:
+      data-locations: classpath:data.sql # demo hotels + alice/bob, but no admin with a public password
+
+server:
+  # Behind Caddy: trust X-Forwarded-For/-Proto so request.getRemoteAddr() is the real client IP
+  # (otherwise the per-IP rate limiter would see every visitor as the proxy and throttle them together).
+  # Tomcat's default trusted-proxy list already covers Docker's 172.16-31.x network.
+  forward-headers-strategy: native
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+
+management:
+  endpoint:
+    health:
+      show-details: never

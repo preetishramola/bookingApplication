@@ -22,7 +22,8 @@ spring:
       mode: always
       # schema script runs first (extensions, PostGIS/pgvector columns + indexes), then seed data
       schema-locations: classpath:db/postgis-pgvector.sql
-      data-locations: classpath:data.sql
+      # data-dev-admin.sql seeds admin@example.com / admin123 for local dev; the prod profile leaves it out.
+      data-locations: classpath:data.sql,classpath:data-dev-admin.sql
 
   ai:
     model:
@@ -40,6 +41,12 @@ spring:
 
 server:
   port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
 
 app:
   jwt:

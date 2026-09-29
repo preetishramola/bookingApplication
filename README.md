@@ -73,7 +73,8 @@ A Spring Boot REST API for searching and booking hotels. Beyond the usual CRUD, 
 | Auth | Spring Security, JJWT, BCrypt |
 | Rate limiting | Bucket4j |
 | Testing | JUnit 5, MockMvc, **Testcontainers**, AssertJ, Postman / Newman |
-| Infra | Docker Compose (multi-arch image, runs natively on Apple Silicon) |
+| Frontend | React 19 + TypeScript (Vite), plain CSS |
+| Infra | Docker Compose; AWS EC2 + Caddy (HTTPS) + GitHub Actions for deployment |
 
 ---
 
@@ -296,6 +297,18 @@ Or import `api-tests/HotelBooking.postman_collection.json` into Postman and run 
 ```bash
 npx newman run api-tests/HotelBooking.postman_collection.json
 ```
+
+---
+
+## Deployment (AWS)
+
+Runs on a single EC2 instance with Docker Compose (`docker-compose.prod.yml`):
+
+- **Caddy** (`frontend/Dockerfile` builds the React app into a Caddy image): automatic HTTPS, serves the app, proxies `/api/*` to Spring Boot.
+- **Spring Boot** with the `prod` profile (`application-prod.yml`): secrets from env, no demo admin, real client IPs for rate limiting.
+- **PostgreSQL** (PostGIS + pgvector), never exposed to the internet.
+
+Embeddings use the instance's IAM role for Bedrock, so no AWS keys live on the server. Deploys are manual: **Actions → Deploy to AWS → Run workflow** runs the tests, pushes the three images to GHCR, and restarts the stack over SSH. One-time server setup: `deploy/setup-server.sh` and `deploy/.env.example`.
 
 ---
 

@@ -39,6 +39,7 @@ public class SecurityConfig {
                         // Spring forwards errors (sendError 400/403/404...) to /error. It must be open, or the
                         // forwarded request (which has no JWT auth) turns every error into a misleading 401.
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/hotels/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // Everything else (bookings, user bookings) needs a valid JWT

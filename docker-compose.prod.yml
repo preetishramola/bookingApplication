@@ -1,0 +1,70 @@
+# Production stack for a single EC2 instance:  docker compose -f docker-compose.prod.yml up -d
+#   caddy    -> ports 80/443, automatic HTTPS (Let's Encrypt) for APP_DOMAIN; serves the React app and proxies /api
+#   app      -> Spring Boot API (not published to the internet directly)
+#   postgres -> PostGIS + pgvector (never published to the internet)
+# Secrets and settings come from the .env file next to this file (see deploy/.env.example).
+# Images are built and pushed to ghcr.io by .github/workflows/deploy.yml.
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: ${DB_IMAGE:?set DB_IMAGE in .env}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hotelbooking
+      POSTGRES_USER: hotelbooking
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hotelbooking -d hotelbooking"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 384m
+    logging: *logging
+
+  app:
+    image: ${APP_IMAGE:?set APP_IMAGE in .env}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/hotelbooking
+      DB_USERNAME: hotelbooking
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      AWS_REGION: ${AWS_REGION:-ap-south-1}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-120}
+      # AWS credentials: none here on purpose. The app uses the EC2 instance role (IMDSv2).
+    mem_limit: 900m
+    logging: *logging
+
+  caddy:
+    image: ${WEB_IMAGE:?set WEB_IMAGE in .env}
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?set APP_DOMAIN in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    mem_limit: 128m
+    logging: *logging
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

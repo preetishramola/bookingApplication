@@ -1,0 +1,13 @@
+target
+.git
+.github
+.idea
+.vscode
+.postman
+postman
+api-tests
+deploy
+*.md
+.env
+.DS_Store
+frontend

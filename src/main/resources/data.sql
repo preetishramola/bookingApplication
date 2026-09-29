@@ -43,11 +43,11 @@ INSERT INTO rooms (id, hotel_id, room_number, type, price_per_night, status) VAL
   (9, 6, 'V1', 'SUITE', 240.00, 'AVAILABLE')
 ON CONFLICT (id) DO NOTHING;
 
--- Demo logins (local dev only): alice@example.com / bob@example.com -> password123, admin@example.com -> admin123
+-- Demo logins: alice@example.com / bob@example.com -> password123 (ordinary users, safe to share on a demo).
+-- The admin account lives in data-dev-admin.sql, which production does not load.
 INSERT INTO users (id, name, email, password, role) VALUES
   (1, 'Alice Johnson', 'alice@example.com', '$2y$10$6ZjdZZiQ1KFxMcwQBRqlNuER7CBm5jRHHs6rKe..VaL3g1IQiwaIO', 'ROLE_USER'),
-  (2, 'Bob Smith', 'bob@example.com', '$2y$10$6ZjdZZiQ1KFxMcwQBRqlNuER7CBm5jRHHs6rKe..VaL3g1IQiwaIO', 'ROLE_USER'),
-  (3, 'Demo Admin', 'admin@example.com', '$2y$10$Nr/mCHjTwVBBAq7YVFmL5unw8vseHX7rjvma4oaOaQuRhEUKlS/Ze', 'ROLE_ADMIN')
+  (2, 'Bob Smith', 'bob@example.com', '$2y$10$6ZjdZZiQ1KFxMcwQBRqlNuER7CBm5jRHHs6rKe..VaL3g1IQiwaIO', 'ROLE_USER')
 ON CONFLICT (id) DO NOTHING;
 
 -- The rows above use explicit ids, which doesn't advance the IDENTITY sequences.
