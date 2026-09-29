@@ -28,8 +28,10 @@ public abstract class IntegrationTestBase {
     @Autowired protected BookingRepository bookingRepository;
     @Autowired protected PaymentRepository paymentRepository;
     @Autowired protected IdempotencyRepository idempotencyRepository;
+    @Autowired protected ReviewRepository reviewRepository;
 
     protected void clearDatabase() {
+        reviewRepository.deleteAll();
         paymentRepository.deleteAll();
         bookingRepository.deleteAll();
         idempotencyRepository.deleteAll();

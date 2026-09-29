@@ -24,7 +24,16 @@ public class Hotel {
     private String city;
     private String state;
     private String country;
+
+    // The rating set when the hotel was added (admin/seed data). Shown until guests review the hotel.
     private Double rating;
+
+    // Maintained by ReviewService from verified guest reviews (never set from requests).
+    @Column(name = "review_count", nullable = false, columnDefinition = "integer not null default 0")
+    private Integer reviewCount = 0;
+
+    @Column(name = "average_review_rating")
+    private Double averageReviewRating;
 
     @Column(columnDefinition = "TEXT")
     private String description;
@@ -47,6 +56,11 @@ public class Hotel {
 
     // A hotel can have many rooms. CascadeType.ALL means if we save/delete a hotel, 
     // it cascades to its rooms.
+    /** What guests see: the average of verified reviews, or the initial rating while there are none. */
+    public Double getEffectiveRating() {
+        return reviewCount != null && reviewCount > 0 && averageReviewRating != null ? averageReviewRating : rating;
+    }
+
     @JsonIgnore
     @OneToMany(mappedBy = "hotel", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Room> rooms = new ArrayList<>();

@@ -3,13 +3,17 @@ package com.example.hotelbooking.repository;
 import com.example.hotelbooking.entity.Hotel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.LockModeType;
+
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The geo and vibe queries are native SQL because they use PostGIS / pgvector operators.
@@ -17,6 +21,11 @@ import java.util.List;
  */
 @Repository
 public interface HotelRepository extends JpaRepository<Hotel, Long>, JpaSpecificationExecutor<Hotel> {
+
+    /** SELECT ... FOR UPDATE: serialises review writes for one hotel while its average is recomputed. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT h FROM Hotel h WHERE h.id = :id")
+    Optional<Hotel> findByIdForUpdate(@Param("id") Long id);
 
     /** id + a distance (metres) and/or cosine similarity for a search hit. */
     interface HotelMatch {

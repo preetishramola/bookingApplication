@@ -15,7 +15,9 @@ public class HotelResponse {
     private String city;
     private String state;
     private String country;
+    /** Average of verified guest reviews (1 decimal), or the hotel's initial rating while it has none. */
     private Double rating;
+    private Integer reviewCount;
     private String description;
     private Double latitude;
     private Double longitude;
@@ -29,11 +31,16 @@ public class HotelResponse {
                 .city(hotel.getCity())
                 .state(hotel.getState())
                 .country(hotel.getCountry())
-                .rating(hotel.getRating())
+                .rating(roundToOneDecimal(hotel.getEffectiveRating()))
+                .reviewCount(hotel.getReviewCount() == null ? 0 : hotel.getReviewCount())
                 .description(hotel.getDescription())
                 .latitude(hotel.getLatitude())
                 .longitude(hotel.getLongitude())
                 .amenities(List.copyOf(hotel.getAmenities()))
                 .build();
+    }
+
+    private static Double roundToOneDecimal(Double value) {
+        return value == null ? null : Math.round(value * 10) / 10.0;
     }
 }

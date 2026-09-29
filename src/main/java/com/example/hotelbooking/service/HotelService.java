@@ -9,12 +9,12 @@ import com.example.hotelbooking.exception.ResourceNotFoundException;
 import com.example.hotelbooking.repository.HotelRepository;
 import com.example.hotelbooking.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -52,10 +52,15 @@ public class HotelService {
                 .and(equalsIgnoreCase("state", state))
                 .and(equalsIgnoreCase("country", country));
         if (minRating != null) {
-            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("rating"), minRating));
+            // Same rule as Hotel.getEffectiveRating(): review average when there are reviews, else the initial rating
+            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(
+                    cb.coalesce(root.<Double>get("averageReviewRating"), root.<Double>get("rating")), minRating));
         }
 
-        return hotelRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "rating"));
+        return hotelRepository.findAll(spec).stream()
+                .sorted(Comparator.comparing(Hotel::getEffectiveRating,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
     }
 
     /**

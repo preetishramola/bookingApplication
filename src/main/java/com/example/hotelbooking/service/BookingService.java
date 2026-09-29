@@ -36,6 +36,7 @@ public class BookingService {
     private final UserRepository userRepository;
     private final PaymentService paymentService;
     private final RefundService refundService;
+    private final ReviewService reviewService;
 
     /**
      * Retrieves all rooms for a hotel that are physically AVAILABLE 
@@ -183,6 +184,7 @@ public class BookingService {
 
         booking.setStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
+        reviewService.removeReviewForCancelledBooking(booking.getId());
 
         refundService.processRefund(booking);
     }

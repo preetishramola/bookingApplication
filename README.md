@@ -47,6 +47,12 @@ A Spring Boot REST API for searching and booking hotels. Beyond the usual CRUD, 
 - **Payments** — Strategy pattern: UPI and credit card.
 - **Cancellation** — owners (or admins) can cancel; refund processing is a placeholder for now.
 
+### Verified reviews
+- **Only real guests** — a review is tied to one booking: only its owner can write it, the booking must be `CONFIRMED`, and only from the check-in date. One review per stay.
+- **Public reading** — anyone can read a hotel's reviews (paged, newest first); reviewers show as "Alice J.", never by email.
+- **Live rating** — a hotel's `rating` becomes the average of its reviews (with `reviewCount`); until the first review it shows the initial rating. The hotel row is locked while the average is recomputed, so concurrent reviews can't skew it.
+- **Edit / delete** — authors can edit or delete their own review, admins can delete any; cancelling a booking removes its review.
+
 ### Security & reliability
 - Stateless **JWT** auth (HS256, 24 h), **BCrypt** passwords, roles `USER` / `ADMIN`.
 - **Ownership checks** — the booking user comes from the token, never the request body; users can only see or cancel their own bookings.
@@ -199,6 +205,15 @@ Stop everything with `docker compose down` (add `-v` to also delete the database
 | DELETE | `/api/bookings/{id}` | 👤 owner / 🛡️ | Cancel booking |
 | GET | `/api/bookings/me` | 👤 | My bookings |
 | GET | `/api/users/{userId}/bookings` | 👤 self / 🛡️ | A user's bookings |
+
+### Reviews
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| GET | `/api/hotels/{id}/reviews?page=0&size=10` | 🔓 | A hotel's reviews, newest first |
+| POST | `/api/bookings/{id}/review` | 👤 owner | Review a stay — `{"rating":1-5,"comment":"..."}`; confirmed booking, from check-in day, once |
+| PUT | `/api/reviews/{id}` | 👤 author | Edit your review |
+| DELETE | `/api/reviews/{id}` | 👤 author / 🛡️ | Delete a review |
+| GET | `/api/reviews/me` | 👤 | My reviews (with `bookingId`) |
 
 ### Admin
 | Method | Endpoint | Access | Description |
